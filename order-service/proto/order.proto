@@ -1,0 +1,117 @@
+syntax = "proto3";
+
+package order;
+
+option go_package = "sneaker-store/order-service/proto;orderpb";
+
+service OrderService {
+  rpc CreateOrder(CreateOrderRequest) returns (OrderResponse);
+  rpc GetOrder(GetOrderRequest) returns (OrderResponse);
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+  rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (OrderResponse);
+  rpc CancelOrder(CancelOrderRequest) returns (OrderResponse);
+  rpc GetOrdersByUser(GetOrdersByUserRequest) returns (ListOrdersResponse);
+  rpc GetOrdersByStatus(GetOrdersByStatusRequest) returns (ListOrdersResponse);
+  rpc GetOrderStats(GetOrderStatsRequest) returns (GetOrderStatsResponse);
+  rpc GetOrderItems(GetOrderItemsRequest) returns (GetOrderItemsResponse);
+  rpc GetTotalRevenue(GetTotalRevenueRequest) returns (GetTotalRevenueResponse);
+  rpc GetOrdersByDateRange(GetOrdersByDateRangeRequest) returns (ListOrdersResponse);
+  rpc CountOrdersByUser(CountOrdersByUserRequest) returns (CountOrdersByUserResponse);
+}
+
+message OrderItem {
+  string product_id   = 1;
+  string product_name = 2;
+  int32  quantity     = 3;
+  double price        = 4;
+  string size         = 5;
+}
+
+message CreateOrderRequest {
+  string user_id           = 1;
+  repeated OrderItemInput items = 2;
+  string shipping_address  = 3;
+}
+
+message OrderItemInput {
+  string product_id = 1;
+  int32  quantity   = 2;
+  string size       = 3;
+}
+
+message GetOrderRequest {
+  string id = 1;
+}
+
+message ListOrdersRequest {}
+
+message UpdateOrderStatusRequest {
+  string id     = 1;
+  string status = 2;
+}
+
+message CancelOrderRequest {
+  string id = 1;
+}
+
+message GetOrdersByUserRequest {
+  string user_id = 1;
+}
+
+message GetOrdersByStatusRequest {
+  string status = 1;
+}
+
+message GetOrderStatsRequest {}
+
+message GetOrderItemsRequest {
+  string order_id = 1;
+}
+
+message GetTotalRevenueRequest {}
+
+message GetOrdersByDateRangeRequest {
+  string from = 1;
+  string to   = 2;
+}
+
+message CountOrdersByUserRequest {
+  string user_id = 1;
+}
+
+message OrderResponse {
+  string id               = 1;
+  string user_id          = 2;
+  repeated OrderItem items = 3;
+  double total_amount     = 4;
+  string status           = 5;
+  string shipping_address = 6;
+  string created_at       = 7;
+  string updated_at       = 8;
+}
+
+message ListOrdersResponse {
+  repeated OrderResponse orders = 1;
+}
+
+message GetOrderStatsResponse {
+  int32  total_orders     = 1;
+  int32  pending_orders   = 2;
+  int32  confirmed_orders = 3;
+  int32  shipped_orders   = 4;
+  int32  delivered_orders = 5;
+  int32  cancelled_orders = 6;
+  double total_revenue    = 7;
+}
+
+message GetOrderItemsResponse {
+  repeated OrderItem items = 1;
+}
+
+message GetTotalRevenueResponse {
+  double total = 1;
+}
+
+message CountOrdersByUserResponse {
+  int32 count = 1;
+}
