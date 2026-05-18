@@ -8,9 +8,9 @@ A microservices-based online sneaker store built with Go, gRPC, PostgreSQL, Redi
 ┌─────────────────────────────────────────────────────────┐
 │                     API Gateway :8080                    │
 │              (HTTP REST → gRPC routing)                  │
-└──────────┬────────────────┬────────────────┬────────────┘
-           │                │                │
-           ▼                ▼                ▼
+└──────────┬────────────────┬───────────────┬─────────────┘
+           │                │               │
+           ▼                ▼               ▼
   ┌────────────────┐ ┌────────────────┐ ┌────────────────┐
   │ Product Service│ │  Order Service │ │  User Service  │
   │    :50051      │ │    :50052      │ │    :50053      │
@@ -28,6 +28,13 @@ A microservices-based online sneaker store built with Go, gRPC, PostgreSQL, Redi
               │      Notification Service      │
               │  (subscriber + Gmail SMTP)     │
               └────────────────────────────────┘
+
+  ┌────────────────────────────────────────────────────────┐
+  │                    AI Service :50054                   │
+  │              (VAULT AI chat advisor)                   │
+  │   OpenAI API → PostgreSQL (history) → Redis (cache)   │
+  │        gRPC ← API Gateway ← Frontend widget           │
+  └────────────────────────────────────────────────────────┘
 ```
 
 ## Services
@@ -37,6 +44,7 @@ A microservices-based online sneaker store built with Go, gRPC, PostgreSQL, Redi
 | product-service      | 50051 | Sneaker catalog management                     |
 | order-service        | 50052 | Order management (calls product-service gRPC)  |
 | user-service         | 50053 | User accounts and authentication               |
+| ai-service           | 50054 | VAULT AI chat advisor (OpenAI + product catalog)|
 | notification-service | —     | NATS subscriber, sends Gmail emails            |
 | api-gateway          | 8080  | HTTP REST → gRPC gateway                       |
 
@@ -89,6 +97,69 @@ A microservices-based online sneaker store built with Go, gRPC, PostgreSQL, Redi
 | GetUserStats       | Total and active user counts                 |
 | UpdateUserStatus   | Activate or deactivate a user account        |
 | ResetPassword      | Admin password reset (no old pass required)  |
+
+### AI Service (4)
+| RPC                  | Description                                          |
+|----------------------|------------------------------------------------------|
+| AskSneakerAdvice     | Chat with VAULT AI — answers any sneaker question    |
+| RecommendSneakers    | Returns top-5 matches by budget, size, preferences   |
+| SearchSneakersByStyle| Finds sneakers by style description (e.g. "streetwear") |
+| GetTrendingSneakers  | Returns trending models based on catalog + AI        |
+
+## AI Service (VAULT AI)
+
+VAULT AI is a chat widget embedded in the frontend that gives personalised sneaker advice powered by OpenAI.
+
+### How it works
+
+```
+User types message in chat widget
+        │
+        ▼
+Frontend (Next.js) → POST /api/v1/ai/chat
+        │
+        ▼
+API Gateway → ai-service:50054 (gRPC AskSneakerAdvice)
+        │
+        ├── 1. Check Redis cache (same session + message → instant reply)
+        ├── 2. Load last 10 messages from PostgreSQL (conversation history)
+        ├── 3. Call OpenAI API with sneaker system prompt + history + message
+        ├── 4. Save user message + AI reply to PostgreSQL
+        ├── 5. Cache reply in Redis
+        │
+        ▼
+Response returned to frontend
+```
+
+### Three AI capabilities
+
+| Endpoint | Use case | Fallback if OpenAI fails |
+|----------|----------|--------------------------|
+| `AskSneakerAdvice` | Open-ended chat ("What shoes for hiking?") | Returns error |
+| `RecommendSneakers` | Filtered by budget + size + preferences | Scores products locally by keyword match |
+| `GetTrendingSneakers` | Shows trending models | Returns top products from catalog by price |
+
+### Setup
+
+Add your OpenAI API key to `.env`:
+
+```env
+OPENAI_API_KEY=sk-...
+```
+
+Then start the service:
+
+```bash
+cd ai-service
+DATABASE_URL="postgres://postgres:postgres@localhost:5432/sneaker_ai?sslmode=disable" \
+REDIS_URL="redis://localhost:6379" \
+OPENAI_API_KEY="sk-..." \
+PRODUCT_SERVICE_ADDR="localhost:50051" \
+GRPC_PORT=50054 \
+go run ./cmd
+```
+
+Or use `./start.sh` which loads all credentials from `.env` automatically.
 
 ## Prerequisites
 
