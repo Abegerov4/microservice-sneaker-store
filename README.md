@@ -242,6 +242,67 @@ curl -X PATCH http://localhost:8080/api/v1/orders/<order-id>/status \
 | orders.status_updated    | UpdateOrderStatus succeeds       | event_type, occurred_at, id, old/new_status |
 | users.registered         | CreateUser succeeds              | event_type, occurred_at, id, email          |
 
+## Sending Emails (Gmail SMTP)
+
+The notification service sends emails automatically when key events occur in the system.
+
+### How it works
+
+```
+order-service / user-service
+        │  publishes event to NATS
+        ▼
+   NATS broker
+        │  notification-service subscribed
+        ▼
+notification-service
+        │  formats email body
+        ▼
+   Gmail SMTP (smtp.gmail.com:587)
+        │
+        ▼
+    Recipient inbox
+```
+
+### Triggered emails
+
+| Event | Recipient | Subject |
+|-------|-----------|---------|
+| Order placed | `NOTIFY_EMAIL` from `.env` | Your Sneaker Store order has been placed! |
+| Order status changed | `NOTIFY_EMAIL` from `.env` | Order #`<id>` status update: `<new_status>` |
+| User registered | User's own email (from registration payload) | Welcome to Sneaker Store! |
+
+### Setup (Gmail App Password)
+
+Gmail requires an **App Password** — your regular password will not work.
+
+1. Enable 2-Step Verification on your Google account: https://myaccount.google.com/security
+2. Generate an App Password: https://myaccount.google.com/apppasswords
+3. Copy the `.env.example` to `.env` and fill in your credentials:
+
+```bash
+cp .env.example .env
+```
+
+```env
+SMTP_USERNAME=your-email@gmail.com
+SMTP_PASSWORD=xxxx xxxx xxxx xxxx   # App Password (spaces are ok)
+SMTP_FROM=your-email@gmail.com
+NOTIFY_EMAIL=your-email@gmail.com
+```
+
+The `.env` file is gitignored — credentials never enter version control.
+
+### Quick test
+
+Place an order via the API and check your inbox:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/orders \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"<user-id>","items":[{"product_id":"<product-id>","quantity":1,"size":"42"}],"shipping_address":"Almaty"}'
+```
+
 ## Broker Choice: NATS
 
 NATS (Core) was chosen for:
@@ -282,6 +343,48 @@ migrate -path ./migrations -database "postgres://postgres:postgres@localhost:543
 # Rollback
 migrate -path ./migrations -database "..." down 1
 ```
+
+## Testing
+
+The project includes unit tests for all four business-logic services. Tests use mocks — no database, Redis, NATS, or OpenAI connection required.
+
+### Run all tests
+
+```bash
+go test ./product-service/... ./order-service/... ./user-service/... ./ai-service/...
+```
+
+### Run tests for a specific service
+
+```bash
+cd product-service && go test ./... -v
+cd order-service  && go test ./... -v
+cd user-service   && go test ./... -v
+cd ai-service     && go test ./... -v
+```
+
+### Test coverage
+
+| Service | Tests | What is covered |
+|---------|-------|-----------------|
+| product-service | 14 | Create/update/delete validation, stock updates, bulk delete |
+| order-service | 13 | Order creation, status transitions, cancelled order guard, revenue calculation |
+| user-service | 17 | Registration, login, wrong password, deactivated account, password change |
+| ai-service | 4 | Chat advice, Gemini error handling, trending fallback, recommendation fallback |
+
+### How mocks work
+
+Each external dependency (PostgreSQL, Redis, NATS, OpenAI) is replaced by a lightweight in-memory mock that implements the same interface:
+
+```
+Real code:           Test:
+PostgreSQL repo  →   mockRepo    (stores data in a Go map)
+Redis cache      →   mockCache   (always returns cache miss)
+OpenAI/Gemini    →   mockGemini  (returns a predefined string or error)
+NATS publisher   →   mockPublisher (no-op)
+```
+
+This means tests run instantly and produce the same result on any machine without any infrastructure.
 
 ## Failure Scenarios
 
