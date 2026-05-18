@@ -1,0 +1,4 @@
+2026/05/17 18:34:40 migrations applied
+2026/05/17 18:34:40 admin account ready: admin@sneakerstore.com
+2026/05/17 18:34:40 listen: listen tcp :50053: bind: address already in use
+exit status 1

@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package ai;
+
+option go_package = "sneaker-store/ai-service/proto;aipb";
+
+service AIService {
+  rpc AskSneakerAdvice(AskSneakerAdviceRequest) returns (AskSneakerAdviceResponse);
+  rpc RecommendSneakers(RecommendSneakersRequest) returns (RecommendSneakersResponse);
+  rpc SearchSneakersByStyle(SearchSneakersByStyleRequest) returns (SearchSneakersByStyleResponse);
+  rpc GetTrendingSneakers(GetTrendingSneakersRequest) returns (GetTrendingSneakersResponse);
+}
+
+message AskSneakerAdviceRequest {
+  string session_id = 1;
+  string user_id    = 2;
+  string message    = 3;
+}
+
+message AskSneakerAdviceResponse {
+  string reply      = 1;
+  string session_id = 2;
+}
+
+message RecommendSneakersRequest {
+  string user_id     = 1;
+  string preferences = 2;
+  double budget      = 3;
+  string size        = 4;
+}
+
+message RecommendSneakersResponse {
+  repeated SneakerRecommendation recommendations = 1;
+}
+
+message SneakerRecommendation {
+  string product_id   = 1;
+  string name         = 2;
+  string brand        = 3;
+  double price        = 4;
+  string image_url    = 5;
+  string reason       = 6;
+  double match_score  = 7;
+}
+
+message SearchSneakersByStyleRequest {
+  string style_description = 1;
+  string size              = 2;
+  double max_price         = 3;
+}
+
+message SearchSneakersByStyleResponse {
+  repeated SneakerRecommendation results = 1;
+  string ai_summary                      = 2;
+}
+
+message GetTrendingSneakersRequest {
+  int32 limit = 1;
+}
+
+message GetTrendingSneakersResponse {
+  repeated TrendingSneaker sneakers = 1;
+}
+
+message TrendingSneaker {
+  string product_id  = 1;
+  string name        = 2;
+  string brand       = 3;
+  double price       = 4;
+  string image_url   = 5;
+  string trend_reason = 6;
+  int32  trend_score  = 7;
+}

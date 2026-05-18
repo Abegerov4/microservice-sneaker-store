@@ -1,0 +1,147 @@
+version: "3.9"
+
+services:
+  # ── Infrastructure ────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-dbs.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  nats:
+    image: nats:latest
+    ports:
+      - "4222:4222"
+
+  # ── Go microservices ──────────────────────────────────────────────────────
+  product-service:
+    build:
+      context: .
+      dockerfile: product-service/Dockerfile
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/sneaker_products?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      NATS_URL: nats://nats:4222
+      GRPC_PORT: "50051"
+    ports:
+      - "50051:50051"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_started
+
+  order-service:
+    build:
+      context: .
+      dockerfile: order-service/Dockerfile
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/sneaker_orders?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      NATS_URL: nats://nats:4222
+      GRPC_PORT: "50052"
+      PRODUCT_SERVICE_ADDR: product-service:50051
+    ports:
+      - "50052:50052"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      product-service:
+        condition: service_started
+
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/sneaker_users?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      NATS_URL: nats://nats:4222
+      GRPC_PORT: "50053"
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@sneakerstore.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+    ports:
+      - "50053:50053"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  ai-service:
+    build:
+      context: .
+      dockerfile: ai-service/Dockerfile
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/sneaker_ai?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      NATS_URL: nats://nats:4222
+      GRPC_PORT: "50054"
+      PRODUCT_SERVICE_ADDR: product-service:50051
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "50054:50054"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      product-service:
+        condition: service_started
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    environment:
+      NATS_URL: nats://nats:4222
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      NOTIFY_EMAIL: ${NOTIFY_EMAIL:-}
+    depends_on:
+      nats:
+        condition: service_started
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    environment:
+      PRODUCT_SERVICE_ADDR: product-service:50051
+      ORDER_SERVICE_ADDR: order-service:50052
+      USER_SERVICE_ADDR: user-service:50053
+      AI_SERVICE_ADDR: ai-service:50054
+      HTTP_PORT: "8080"
+      JWT_SECRET: ${JWT_SECRET:-sneaker-store-jwt-secret-2026}
+    ports:
+      - "8080:8080"
+    depends_on:
+      product-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+      ai-service:
+        condition: service_started
+
+volumes:
+  postgres_data:
