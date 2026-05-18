@@ -14,6 +14,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_DIR="$SCRIPT_DIR/logs"
 mkdir -p "$LOG_DIR"
 
+# Load .env if present
+if [ -f "$SCRIPT_DIR/.env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$SCRIPT_DIR/.env"
+  set +a
+fi
+
 # ── 1. Infrastructure ─────────────────────────────────────────────────────────
 header "1. Starting infrastructure (Docker)"
 
@@ -117,10 +125,10 @@ start_service "order-service" \
 cd "$SCRIPT_DIR/notification-service"
 start_service "notification-service" \
   "NATS_URL=nats://localhost:4222" \
-  "SMTP_USERNAME=${SMTP_USERNAME:-aldiar12378@gmail.com}" \
-  "SMTP_PASSWORD=${SMTP_PASSWORD:-${SMTP_PASSWORD}}" \
-  "SMTP_FROM=${SMTP_FROM:-aldiar12378@gmail.com}" \
-  "NOTIFY_EMAIL=${NOTIFY_EMAIL:-aldiar12378@gmail.com}"
+  "SMTP_USERNAME=${SMTP_USERNAME}" \
+  "SMTP_PASSWORD=${SMTP_PASSWORD}" \
+  "SMTP_FROM=${SMTP_FROM:-${SMTP_USERNAME}}" \
+  "NOTIFY_EMAIL=${NOTIFY_EMAIL:-${SMTP_USERNAME}}"
 
 cd "$SCRIPT_DIR/ai-service"
 start_service "ai-service" \
@@ -129,7 +137,7 @@ start_service "ai-service" \
   "REDIS_URL=redis://localhost:6379" \
   "GRPC_PORT=50054" \
   "PRODUCT_SERVICE_ADDR=localhost:50051" \
-  "OPENAI_API_KEY=${OPENAI_API_KEY:-${OPENAI_API_KEY}}"
+  "OPENAI_API_KEY=${OPENAI_API_KEY}"
 
 sleep 2
 
