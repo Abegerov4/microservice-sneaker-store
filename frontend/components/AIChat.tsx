@@ -33,7 +33,7 @@ function RecommendationCard({ rec }: { rec: SneakerRecommendation }) {
           {rec.name}
         </p>
         <p className="text-gray-500 text-[10px]">{rec.brand}</p>
-        <p className="text-[#C9A84C] text-xs font-bold mt-1">${rec.price.toLocaleString()}</p>
+        <p className="text-[#C9A84C] text-xs font-bold mt-1">${(rec.price ?? 0).toLocaleString()}</p>
         {rec.reason && (
           <p className="text-gray-600 text-[10px] mt-0.5 line-clamp-2">{rec.reason}</p>
         )}
@@ -62,7 +62,7 @@ function TrendingCard({ sneaker }: { sneaker: TrendingSneaker }) {
           {sneaker.name}
         </p>
         <p className="text-gray-500 text-[10px]">{sneaker.brand}</p>
-        <p className="text-[#C9A84C] text-xs font-bold mt-1">${sneaker.price.toLocaleString()}</p>
+        <p className="text-[#C9A84C] text-xs font-bold mt-1">${(sneaker.price ?? 0).toLocaleString()}</p>
         {sneaker.trend_reason && (
           <p className="text-gray-600 text-[10px] mt-0.5 line-clamp-2">{sneaker.trend_reason}</p>
         )}

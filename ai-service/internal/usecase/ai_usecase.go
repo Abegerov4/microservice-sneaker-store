@@ -271,9 +271,7 @@ func parseRecommendations(raw string, products []*model.ProductInfo) ([]*model.S
 	}
 	for _, r := range recs {
 		if p, ok := productMap[r.ProductID]; ok {
-			if r.ImageURL == "" {
-				r.ImageURL = p.ImageURL
-			}
+			r.ImageURL = p.ImageURL
 			if r.Price == 0 {
 				r.Price = p.Price
 			}
@@ -306,8 +304,9 @@ func parseStyleSearch(raw string, products []*model.ProductInfo) ([]*model.Sneak
 	}
 	for _, r := range out.Results {
 		if p, ok := productMap[r.ProductID]; ok {
-			if r.ImageURL == "" {
-				r.ImageURL = p.ImageURL
+			r.ImageURL = p.ImageURL
+			if r.Price == 0 {
+				r.Price = p.Price
 			}
 		}
 	}
@@ -334,9 +333,7 @@ func parseTrending(raw string, products []*model.ProductInfo) []*model.TrendingS
 	}
 	for _, t := range trending {
 		if p, ok := productMap[t.ProductID]; ok {
-			if t.ImageURL == "" {
-				t.ImageURL = p.ImageURL
-			}
+			t.ImageURL = p.ImageURL
 			if t.Price == 0 {
 				t.Price = p.Price
 			}
