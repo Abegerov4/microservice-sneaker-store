@@ -115,7 +115,7 @@ export default function AdminProductsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [stockProduct, setStockProduct] = useState<Product | null>(null);
-  const [stockDelta, setStockDelta] = useState(0);
+  const [stockDelta, setStockDelta] = useState<string>("0");
   const [form, setForm] = useState<ProductForm>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -131,6 +131,7 @@ export default function AdminProductsPage() {
     } finally {
       setLoading(false);
     }
+    return;
   };
 
   const loadLowStock = async () => {
@@ -248,10 +249,12 @@ export default function AdminProductsPage() {
 
   const handleStockUpdate = async () => {
     if (!token || !stockProduct) return;
+    const delta = parseInt(stockDelta, 10);
+    if (isNaN(delta) || delta === 0) return;
     try {
-      await adminUpdateStock(token, stockProduct.id, stockDelta);
+      await adminUpdateStock(token, stockProduct.id, delta);
       setStockProduct(null);
-      load();
+      await load();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to update stock");
     }
@@ -434,7 +437,7 @@ export default function AdminProductsPage() {
                         <button
                           onClick={() => {
                             setStockProduct(p);
-                            setStockDelta(0);
+                            setStockDelta("0");
                           }}
                           className="text-xs text-blue-400 hover:text-blue-300 font-semibold transition-colors"
                         >
@@ -532,15 +535,17 @@ export default function AdminProductsPage() {
               Adjustment (+ to add, - to remove)
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={stockDelta}
-              onChange={(e) => setStockDelta(Number(e.target.value))}
-              className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-white/25 transition-colors"
+              onChange={(e) => setStockDelta(e.target.value)}
+              placeholder="e.g. -10 or 5"
+              className="w-full bg-white/5 border border-white/10 text-white placeholder-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-white/25 transition-colors"
             />
             <p className="text-xs text-gray-600 mt-2">
               New stock:{" "}
               <span className="text-white font-semibold">
-                {stockProduct.stock + stockDelta}
+                {stockProduct.stock + (parseInt(stockDelta, 10) || 0)}
               </span>
             </p>
           </div>

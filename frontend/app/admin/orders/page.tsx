@@ -1,6 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+
+function parseGoDate(s: string): Date {
+  if (!s) return new Date(NaN);
+  const parts = s.split(" ");
+  if (parts.length >= 3) return new Date(`${parts[0]}T${parts[1]}${parts[2]}`);
+  return new Date(s);
+}
 import { ShoppingCart, X, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import {
@@ -272,7 +279,7 @@ export default function AdminOrdersPage() {
                         ${o.total_amount?.toLocaleString()}
                       </td>
                       <td className="px-4 py-3.5 text-gray-500 text-xs">
-                        {new Date(o.created_at).toLocaleDateString("en-US", {
+                        {parseGoDate(o.created_at).toLocaleDateString("en-US", {
                           month: "short",
                           day: "numeric",
                           year: "numeric",
