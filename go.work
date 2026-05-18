@@ -1,10 +1,10 @@
 go 1.22
 
 use (
-	./product-service
-	./order-service
-	./user-service
-	./notification-service
-	./api-gateway
 	./ai-service
+	./api-gateway
+	./notification-service
+	./order-service
+	./product-service
+	./user-service
 )
