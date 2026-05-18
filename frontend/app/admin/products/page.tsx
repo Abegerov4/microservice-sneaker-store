@@ -77,7 +77,7 @@ function FormFields({
           </label>
           <input
             type={type}
-            value={(form as Record<string, unknown>)[key] as string}
+            value={((form as Record<string, unknown>)[key] ?? "") as string}
             onChange={(e) =>
               setForm({
                 ...form,
@@ -527,7 +527,7 @@ export default function AdminProductsPage() {
             <br />
             <span className="text-gray-500 text-xs">
               Current stock:{" "}
-              <span className="text-white font-bold">{stockProduct.stock}</span>
+              <span className="text-white font-bold">{stockProduct.stock ?? 0}</span>
             </span>
           </p>
           <div>
@@ -545,7 +545,7 @@ export default function AdminProductsPage() {
             <p className="text-xs text-gray-600 mt-2">
               New stock:{" "}
               <span className="text-white font-semibold">
-                {stockProduct.stock + (parseInt(stockDelta, 10) || 0)}
+                {(stockProduct.stock ?? 0) + (parseInt(stockDelta, 10) || 0)}
               </span>
             </p>
           </div>

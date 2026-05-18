@@ -83,6 +83,13 @@ done
 # ── 4. Go services ────────────────────────────────────────────────────────────
 header "4. Starting Go services"
 
+# Kill any previously running Go service processes to avoid duplicates
+info "Stopping any existing service processes..."
+for svc in product-service user-service order-service notification-service ai-service api-gateway; do
+  pkill -f "$SCRIPT_DIR/$svc" 2>/dev/null || true
+done
+sleep 1
+
 PIDS=()
 
 start_service() {
