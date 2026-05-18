@@ -174,6 +174,9 @@ func (uc *ProductUseCase) UpdateStock(ctx context.Context, id string, delta int)
 	if err := uc.cache.DeleteByID(ctx, id); err != nil {
 		log.Printf("cache delete failed: %v", err)
 	}
+	if err := uc.cache.DeleteList(ctx); err != nil {
+		log.Printf("cache delete list failed: %v", err)
+	}
 	return newStock, nil
 }
 
